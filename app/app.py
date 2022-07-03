@@ -7,23 +7,22 @@ import numpy as np
 import torch
 import torchvision.transforms as transforms
 from flask import Flask, Response, jsonify, request, send_file
+from flask_cors import CORS
 from PIL import Image
 from torch import nn
 from torchvision import models
 
-from .model import AutoEncoder
+from .model import AutoEncoder, load_model
 
 app = Flask(__name__)
+CORS(app)
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
 model = AutoEncoder()
 dirname = os.path.dirname(__file__)
-model.load_state_dict(torch.load(os.path.join(
-    dirname, 'models/cpuModel2.pth'), map_location=device))
-model.to(device)
-model.eval()
-
+model = load_model(device=device, model_path=os.path.join(
+    dirname, 'models/'), forTraining=False)[0]
 
 def transform_image(image_bytes):
     my_transforms = transforms.Compose([transforms.Resize(128),
@@ -36,6 +35,14 @@ def transform_image(image_bytes):
                                         #     [0.229, 0.224, 0.225])
                                         ])
     image = Image.open(io.BytesIO(image_bytes))
+
+    if (len(image.split()) > 3):
+        # remove alpha channel
+        image.load()  # required for png.split()
+        result = Image.new("RGB", image.size, (255, 255, 255))
+        result.paste(image, mask=image.split()[3])  # 3 is the alpha channel
+        return my_transforms(result).unsqueeze(0)
+
     return my_transforms(image).unsqueeze(0)
 
 
