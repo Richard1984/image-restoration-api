@@ -17,6 +17,8 @@ from .model import AutoEncoder, load_model
 app = Flask(__name__)
 CORS(app)
 
+image_size = 512
+
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
 model = AutoEncoder()
@@ -25,14 +27,11 @@ model = load_model(device=device, model_path=os.path.join(
     dirname, 'models/'), forTraining=False)[0]
 
 def transform_image(image_bytes):
-    my_transforms = transforms.Compose([transforms.Resize(128),
-                                        transforms.CenterCrop(128),
+    my_transforms = transforms.Compose([transforms.Resize(image_size),
+                                        transforms.CenterCrop(image_size),
                                         transforms.ToTensor(),
                                         transforms.Lambda(
-                                            lambda x: x.to(device)),
-                                        # transforms.Normalize(
-                                        #     [0.485, 0.456, 0.406],
-                                        #     [0.229, 0.224, 0.225])
+                                            lambda x: x.to(device))
                                         ])
     image = Image.open(io.BytesIO(image_bytes))
 
